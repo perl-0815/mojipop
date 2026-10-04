@@ -35,6 +35,7 @@ import {
   renderDesign,
 } from './render'
 import { FONT_FAMILIES, type Design, type DecorationType } from './types'
+import { FONT_WEIGHT_OPTIONS, getFontWeight } from './fonts'
 
 function Range({
   label,
@@ -43,6 +44,7 @@ function Range({
   max,
   step = 1,
   unit = '',
+  valueLabel,
   onChange,
 }: {
   label: string
@@ -51,20 +53,19 @@ function Range({
   max: number
   step?: number
   unit?: string
+  valueLabel?: string
   onChange: (n: number) => void
 }) {
   return (
     <label className="range-field">
       <span>
         {label}
-        <output>
-          {value}
-          {unit}
-        </output>
+        <output>{valueLabel ?? `${value}${unit}`}</output>
       </span>
       <input
         type="range"
         aria-label={label}
+        aria-valuetext={valueLabel}
         min={min}
         max={max}
         step={step}
@@ -77,6 +78,43 @@ function Range({
         }
       />
     </label>
+  )
+}
+function FontWeight({
+  font,
+  value,
+  onChange,
+}: {
+  font: Design['font']
+  value: number
+  onChange: (value: number) => void
+}) {
+  const options = FONT_WEIGHT_OPTIONS[font]
+  if (options.length === 1) {
+    return (
+      <p className="font-weight-note">
+        このフォントは太さ固定です。太さを調整する場合は「まるっとゴシック」を選んでください。
+      </p>
+    )
+  }
+  const index = options.findIndex(
+    (option) => option.value === getFontWeight(font, value),
+  )
+  return (
+    <div className="font-weight-control">
+      <Range
+        label="文字の太さ"
+        min={0}
+        max={options.length - 1}
+        value={index}
+        valueLabel={options[index].label}
+        onChange={(next) => onChange(options[next].value)}
+      />
+      <div className="range-endpoints" aria-hidden="true">
+        <span>細め</span>
+        <span>極太</span>
+      </div>
+    </div>
   )
 }
 function Color({
@@ -203,6 +241,7 @@ export default function App() {
   const [transparentExport, setTransparentExport] = useState(true)
   const [size, setSize] = useState({ width: 900, height: 500 })
   const [loading, setLoading] = useState(true)
+  const [renderedDesign, setRenderedDesign] = useState<Design | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [fontRetry, setFontRetry] = useState(0)
@@ -211,6 +250,9 @@ export default function App() {
   const helpRef = useRef<HTMLDialogElement>(null)
   const downloadLock = useRef(false)
   const empty = !design.text.trim()
+  // Mark a new design as pending before the font-loading effect runs. This
+  // keeps export buttons and the busy state tied to the image actually shown.
+  const isPreviewLoading = loading || (!error && renderedDesign !== design)
 
   const change = (next: Design, presetId = '') => {
     setPast((previous) => [...previous.slice(-39), design])
@@ -249,6 +291,7 @@ export default function App() {
           Math.min(window.devicePixelRatio || 1, 2),
         )
         setSize(getLayout(design))
+        setRenderedDesign(design)
         setLoading(false)
       })
       .catch(() => {
@@ -271,7 +314,7 @@ export default function App() {
   }, [notice])
 
   const save = async () => {
-    if (downloadLock.current || empty || loading || error) return
+    if (downloadLock.current || empty || isPreviewLoading || error) return
     downloadLock.current = true
     setSaving(true)
     setNotice('')
@@ -456,15 +499,24 @@ export default function App() {
                 <span>フォント</span>
                 <select
                   value={design.font}
-                  onChange={(e) =>
-                    patch({ font: e.target.value as Design['font'] })
-                  }
+                  onChange={(e) => {
+                    const font = e.target.value as Design['font']
+                    patch({
+                      font,
+                      fontWeight: getFontWeight(font, design.fontWeight),
+                    })
+                  }}
                 >
                   <option value="rounded">まるっとゴシック</option>
                   <option value="gothic">どっしりゴシック</option>
                   <option value="handwritten">ゆるっと手書き</option>
                 </select>
               </label>
+              <FontWeight
+                font={design.font}
+                value={design.fontWeight}
+                onChange={(fontWeight) => patch({ fontWeight })}
+              />
               <div className="quick-colors">
                 <span>文字のカラー</span>
                 <div>
@@ -532,18 +584,6 @@ export default function App() {
                     value={design.lineHeight}
                     onChange={(lineHeight) => patch({ lineHeight })}
                   />
-                  <label className="select-field">
-                    <span>文字の太さ</span>
-                    <select
-                      value={design.fontWeight}
-                      onChange={(e) =>
-                        patch({ fontWeight: Number(e.target.value) })
-                      }
-                    >
-                      <option value={400}>ふつう</option>
-                      <option value={800}>太め</option>
-                    </select>
-                  </label>
                 </Detail>
                 <Detail
                   title="文字色・グラデーション"
@@ -784,7 +824,7 @@ export default function App() {
               )}
               <div
                 className={`artboard ${design.background === 'transparent' ? 'checkerboard' : ''}`}
-                aria-busy={loading}
+                aria-busy={isPreviewLoading}
               >
                 <span className="artboard-tag">
                   {design.background === 'transparent' ? (
@@ -813,7 +853,7 @@ export default function App() {
                     <span>文字を入力すると、ここに表示されます。</span>
                   </div>
                 )}
-                {loading && (
+                {isPreviewLoading && (
                   <span className="canvas-loading">
                     <LoaderCircle size={14} className="spinning" />
                     フォントを準備中
@@ -975,7 +1015,7 @@ export default function App() {
                 <button
                   className="download-button"
                   onClick={save}
-                  disabled={empty || loading || saving || !!error}
+                  disabled={empty || isPreviewLoading || saving || !!error}
                 >
                   {saving ? (
                     <LoaderCircle size={18} className="spinning" />
@@ -1066,7 +1106,7 @@ export default function App() {
         </button>
         <button
           className="download-button"
-          disabled={empty || loading || saving || !!error}
+          disabled={empty || isPreviewLoading || saving || !!error}
           onClick={save}
         >
           {saving ? (

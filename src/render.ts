@@ -1,4 +1,5 @@
 import { FONT_FAMILIES, type Design, type DecorationType } from './types'
+import { getFontWeight, loadFontWeight } from './fonts'
 
 /** Preview and PNG export deliberately share this renderer. All units are CSS pixels. */
 const MIN_WIDTH = 900
@@ -44,7 +45,7 @@ function getMeasuringContext() {
 }
 
 function fontString(design: Design, size = design.fontSize) {
-  return `${clamp(design.fontWeight, 100, 900)} ${size}px ${FONT_FAMILIES[design.font]}`
+  return `${getFontWeight(design.font, design.fontWeight)} ${size}px ${FONT_FAMILIES[design.font]}`
 }
 
 /** Include the actual text so every required Japanese unicode-range subset is loaded. */
@@ -59,7 +60,10 @@ export async function ensureFont(design: Design): Promise<void> {
     let timer: ReturnType<typeof setTimeout> | undefined
     try {
       const faces = await Promise.race([
-        document.fonts.load(descriptor, sample),
+        (async () => {
+          await loadFontWeight(design.font, design.fontWeight)
+          return document.fonts.load(descriptor, sample)
+        })(),
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => reject(new Error('font timeout')), 20_000)
         }),
