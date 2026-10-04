@@ -328,7 +328,6 @@ export default function App() {
               <span className="brand-dot">.</span>
             </span>
           </a>
-          <span className="header-caption">かわいい文字、できあがり。</span>
           <button
             className="help-button"
             onClick={() => helpRef.current?.showModal()}
@@ -342,9 +341,6 @@ export default function App() {
       <main className="page-shell">
         <section className="intro" aria-labelledby="page-title">
           <div>
-            <span className="eyebrow">
-              <span /> A LITTLE TYPE, A LOT OF JOY
-            </span>
             <h1 id="page-title">
               ことばに、
               <span className="headline-pop">
@@ -1050,9 +1046,6 @@ export default function App() {
         <footer className="page-footer">
           <span className="footer-wordmark">mojipop.</span>
           <span>小さなことばに、大きなときめき。</span>
-          <span className="footer-made">
-            Made for your imagination <Heart size={11} />
-          </span>
         </footer>
       </main>
       <nav className="mobile-actions" aria-label="クイック操作">

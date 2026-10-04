@@ -3,6 +3,17 @@
 好きなことばを、ポップでかわいい文字画像にするブラウザアプリ。
 React / TypeScript / Vite と Canvas 2D で作成しています。バックエンドやAPIキーは不要です。
 
+## プレビュー
+
+![mojipopのPC画面。左側で文字やスタイルを選び、右側で仕上がりを確認してPNGを保存できます。](docs/desktop.png)
+
+<details>
+<summary>スマートフォンでの表示</summary>
+
+<img src="docs/mobile.png" alt="mojipopのスマートフォン画面。プレビューの下に設定を表示し、画面下部から画像を保存できます。" width="390" />
+
+</details>
+
 ## 起動
 
 ```sh
